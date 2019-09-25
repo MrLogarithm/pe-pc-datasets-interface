@@ -1,0 +1,352 @@
+<html>
+  <head>
+    <title>
+      n-Gram Viewer
+    </title>
+    <link rel="stylesheet" href="chart.js/Chart.css"> 
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu:400,700" rel="stylesheet" type="text/css">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="chart.js/Chart.bundle.js"></script> 
+
+    <style>
+      h1, h2, h3, h4, h5, h6 {
+        font-family: "Ubuntu", sans-serif;
+      }
+      p {
+        font-family: "Ubuntu", Helvetica, Arial, sans-serif;
+        font-size: 12pt;
+      }
+      body {
+        background-color: #eeeeee;
+        color: #50607b;
+        padding-right:25px;
+      }
+      .group{
+        margin-bottom:50px;
+      }
+      .group::after {
+        content:"";
+        display:table;
+        clear:both;
+      }
+      .sidebar {
+        width: 180px;
+        float: left;
+        text-align: right;
+        margin-left:25px;
+      }
+      .sidebar > div {
+        display: table-cell;
+        text-align:center;
+        float:right;
+        max-width:100%;
+        padding-bottom: 15px;
+      }
+      input {
+        max-width:100%;
+      }
+      .display {
+        width: calc(100% - 250px);
+        float: right;
+      }
+      #loading_shadow {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height:100%;
+        background: rgba(20,20,20,0.8);
+      }
+      #loading_overlay {
+        background: #333;
+        width: 150px;
+        margin: 50px auto;
+        text-align: center;
+        border-radius: 15px;
+      }
+      #loading_overlay > p {
+        color: #ddd;
+        padding: 15px;
+        font-weight: bold;
+      }
+      #spin {
+        margin: auto;
+        width:1px;
+        padding: 40px 0 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading_shadow">
+      <div id="loading_overlay">
+        <p>Loading...</p>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:50px;">
+      <div class="sidebar">
+      </div>
+      <div class="display">
+        <h1></h1>
+        <p>Interface for the <i>n</i>-gram counts hosted at <a href="https://github.com/sfu-natlang/pe-pc-datasets">pe-pc-datasets</a>.
+        </p>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="sidebar">
+        <h3>Proto-Elamite</h3>
+  
+        <label for="pe_n"><i>n</i> = <span id="pe_n_txt">1</span></label>
+        <input type="range" min="1" max="15" value="1" id="pe_n" class="pe"/>
+  
+        <label for="pe_excor">Exclude corrections?</label>
+        <input type="checkbox" id="pe_excor" class="pe"/>
+
+        <label for="pe_collapse">Collapse variants?</label>
+        <input type="checkbox" id="pe_collapse" class="pe"/>
+
+        <label for="pe_search">Search string:</label>
+        <input type="text" id="pe_search" class="pe"/>
+  
+        <label for="pe_range">Plot size: <span id="pe_range_txt">15</span></label>
+        <input type="range" min=5 max=100 value=15 id="pe_range" class="pe"/>
+
+      </div>
+      <div class="display">
+        <canvas id="canvas_pe" class="chart"></canvas>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="sidebar">
+        <h3>Proto-cuneiform</h3>
+
+        <label for="pc_corpus" style="text-align:center">Corpus:</label>
+        <span style="float:left;padding-top:20px">Uruk III</span>
+        <span style="float:right;padding-top:20px">Uruk IV</span>
+        <input type="range" min="1" max="2" value="1" id="pc_corpus" class="pc"/>
+    
+        <label for="pc_n"><i>n</i> = <span id="pc_n_txt">1</span></label>
+        <input type="range" min="1" max="15" value="1" id="pc_n" class="pc"/>
+    
+        <label for="pc_split">Split compounds?</label>
+        <input type="checkbox" id="pc_split" class="pc"/>
+    
+        <label for="pc_collapse">Collapse variants?</label>
+        <input type="checkbox" id="pc_collapse" class="pc"/>
+    
+        <label for="pc_order">Order matters?</label>
+        <input type="checkbox" id="pc_order" class="pc"/>
+    
+        <label for="pc_search">Search string:</label>
+        <input type="text" id="pc_search" class="pc"/>
+    
+        <label for="pc_range">Plot size: <span id="pc_range_txt">15</span></label>
+        <input type="range" min=5 max=100 value=15 id="pc_range" class="pc"/>
+
+      </div>
+      <div class="display">
+        <canvas id="canvas_pc" class="chart"></canvas>
+      </div>
+    </div>
+
+    <script>
+    var pe_data;
+    var pc_data;
+    var ctx_pe = document.getElementById('canvas_pe');
+    var chart_pe = new Chart(ctx_pe);
+    var ctx_pc = document.getElementById('canvas_pc');
+    var chart_pc = new Chart(ctx_pc);
+    
+    $().ready( function(){
+      // Get ngram data as JSON:
+      $.get({
+        url: "https://raw.githubusercontent.com/sfu-natlang/pe-pc-datasets/master/ngrams/pe_ngrams.json",
+        dataType:'json',
+        success:function(result) {
+          pe_data = result;
+          draw_ngrams("pe");
+        }
+      });
+      $('.pe').change( function(){draw_ngrams("pe");} );
+    
+      $.get({
+        url: "https://raw.githubusercontent.com/sfu-natlang/pe-pc-datasets/master/ngrams/pc_ngrams.json",
+        dataType:'json',
+        success:function(result) {
+          pc_data = result;
+          draw_ngrams("pc");
+        }
+      });
+      $('.pc').change( function(){draw_ngrams("pc");} );
+    
+      $('#loading_shadow').hide();
+    });
+    
+    function draw_ngrams( lang ) {
+    
+      var opts = {
+        legend: {
+          display: false,
+        },
+        scales: {
+          yAxes: {
+    	ticks: {
+    	  beginAtZero: true,
+    	}
+          }
+        },
+        layout: {
+          padding: {
+            top: 50
+          }
+        },
+        events: [],
+        animation: {
+            duration: .001,
+            onComplete: function () {
+                var chartInstance = this.chart,
+                    ctx = chartInstance.ctx;
+                ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+    
+                this.data.datasets.forEach(function (dataset, i) {
+                    var meta = chartInstance.controller.getDatasetMeta(i);
+                    meta.data.forEach(function (bar, index) {
+                        var data = dataset.data[index];
+                        ctx.fillText(data, bar._model.x, bar._model.y - 5);
+                    });
+                });
+            }
+        }
+    
+      };
+    
+      if ( lang == "pe" ) {
+      	var opt_corr = ["corrections included", "corrections omitted"];
+      	if ( document.getElementById( lang + "_excor").checked ) {
+        	opt_corr = opt_corr[1];
+      	} else {
+        	opt_corr = opt_corr[0];
+      	}
+      	var opt_merge = ["variants separate", "variants merged"];
+      	if ( document.getElementById( lang + "_collapse").checked ) {
+        	opt_merge = opt_merge[1];
+      	} else {
+        	opt_merge = opt_merge[0];
+      	}
+      	// Select correct data view:
+      	var data = pe_data[opt_corr][opt_merge];
+      } else {
+        var corpus=["admin iii","admin iv"];
+      	corpus = corpus[document.getElementById( lang + "_corpus").value - 1];
+    
+      	var opt_split = ["compounds split", "compounds together"];
+      	if ( document.getElementById( lang + "_split").checked ) {
+        	opt_split = opt_split[0];
+      	} else {
+        	opt_split = opt_split[1];
+      	}
+      	var opt_merge = ["variants separate", "variants merged"];
+      	if ( document.getElementById( lang + "_collapse").checked ) {
+        	opt_merge = opt_merge[1];
+      	} else {
+        	opt_merge = opt_merge[0];
+      	}
+      	var opt_order = ["ordered", "unordered"];
+      	if ( document.getElementById( lang + "_order").checked ) {
+        	opt_order = opt_order[0];
+      	} else {
+        	opt_order = opt_order[1];
+      	}
+      	// Select correct data view:
+      	var data = pc_data[corpus][opt_split][opt_merge][opt_order];
+      }
+    
+      var n = parseInt(document.getElementById( lang + "_n").value);
+      document.getElementById( lang + "_n_txt").innerHTML = n;
+    
+      var search_str = document.getElementById( lang + "_search").value;
+    
+      function search( sign, str, lang ) {
+        if (lang == "pe") {
+          return sign.trim().toLowerCase().includes(str.trim().toLowerCase());
+        } else {
+          if ( document.getElementById("pc_order").checked ) {
+            return sign.trim().toLowerCase().includes(str.trim().toLowerCase());
+          }
+    
+          var split = str.trim().toLowerCase().split(" ");
+          for ( var i = 0; i < split.length; i++ ) {
+            str = split[i];
+            if ( ! sign.trim().toLowerCase().includes(str) ) {
+    	      return false;
+    	    }
+          }
+          return true;
+        }
+      }
+      
+      var dlist = [];
+      for ( var sign in data ) {
+        if ( sign.trim().match("^[ X]*$") || sign.includes("...") || (sign.split(" ").length - 1) != n-1 ) {
+          continue;
+        } else if ( search_str.trim() == "" || search(sign,search_str,lang) ) {
+          dlist.push( [data[sign], sign] );
+        }
+      }
+      dlist.sort(function(a,b){
+    	return a[0] > b[0];
+      });
+    
+      var labels = [];
+      var counts = [];
+    
+      var labels = [];
+    
+      var plt_size = parseInt(document.getElementById( lang + "_range").value);
+      if ( plt_size > dlist.length ) {
+        plt_size = dlist.length;
+      }
+      document.getElementById( lang + "_range_txt").innerHTML = plt_size;
+      for ( var i = 0; i < plt_size; i++ ) {
+        labels.push( dlist[dlist.length - 1 - i][1] );
+        counts.push( dlist[dlist.length - 1 - i][0] );
+      }
+    
+      if ( lang == "pe" ) {
+        var dset = {
+          labels: labels,
+          datasets: [{
+            data: counts,
+          }]
+        }
+        chart_pe.destroy();
+        chart_pe = new Chart(ctx_pe, {
+          type: 'bar',
+          data: dset,
+          options: opts,
+        });
+      } else {
+        var dset = {
+          labels: labels,
+          datasets: [{
+            data: counts,
+          }]
+        }
+        chart_pc.destroy();
+        chart_pc = new Chart(ctx_pc, {
+          type: 'bar',
+          data: dset,
+          options: opts,
+        });
+      }
+      // Fix unresponsive input elements:
+      window.scrollBy(0,1);
+      window.scrollBy(0,-1);
+    }
+    
+    </script>    
+  </body>
+</html>
