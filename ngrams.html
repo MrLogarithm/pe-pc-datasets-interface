@@ -125,6 +125,7 @@
         <span style="float:left;padding-top:20px">Uruk III</span>
         <span style="float:right;padding-top:20px">Uruk IV</span>
         <input type="range" min="1" max="2" value="1" id="pc_corpus" class="pc"/>
+	<br/>
     
         <label for="pc_n"><i>n</i> = <span id="pc_n_txt">1</span></label>
         <input type="range" min="1" max="15" value="1" id="pc_n" class="pc"/>
@@ -138,6 +139,7 @@
         <label for="pc_order">Order matters?</label>
         <input type="checkbox" id="pc_order" class="pc"/>
     
+	<br/>
         <label for="pc_search">Search string:</label>
         <input type="text" id="pc_search" class="pc"/>
     
@@ -297,7 +299,13 @@
         }
       }
       dlist.sort(function(a,b){
-    	return a[0] > b[0];
+	if ( a[0] > b[0] ) {
+    	return 1
+	} else if (a[0] == b[0] ) {
+	  return 0;
+	} else {
+	  return -1;
+	}
       });
     
       var labels = [];
