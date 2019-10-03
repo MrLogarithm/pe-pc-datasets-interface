@@ -73,6 +73,9 @@
         width:1px;
         padding: 40px 0 0 0;
       }
+      canvas {
+	min-height: 200px;
+      }
     </style>
   </head>
   <body>
@@ -82,7 +85,7 @@
       </div>
     </div>
 
-    <div class="group" style="margin-top:50px;">
+    <div class="group" style="margin-top:15px;">
       <div class="sidebar">
       </div>
       <div class="display">
@@ -105,10 +108,10 @@
 	    Search string: if a search term is entered, the plot will only display counts for <em>n</em>-grams which contain the specified term.
 	  </li>
 	  <li>
-	    Plot size: how many columns to display. <em>n</em>-grams are displayed in order of decreasing frequency.
+	    Plot size: how many columns to display. <em>n</em>-grams are displayed in order of decreasing frequency. Chart.js breaks when the plots get too large, so plot size is capped at 1000.
 	  </li>
 	  <li>
-	    Corpus: for proto-cuneiform, specify whether to return frequencies from Uruk III texts or Uruk IV texts.
+	    Corpus: for proto-cuneiform, specify whether to return frequencies from Uruk III texts or Uruk IV texts. Both corpora contain both administrative and lexical texts.
 	  </li>
 	  <li>
 	    Split compounds: separate sign compounds into their constituent parts before counting sign frequencies, so that e.g. |GI&amp;GI| counts as two instances of GI rather than one instance of |GI&amp;GI|
@@ -147,7 +150,7 @@
 	<br/>
   
         <label for="pe_range">Plot size: <span id="pe_range_txt">15</span></label>
-        <input type="range" min=5 max=100 value=15 id="pe_range" class="pe"/>
+        <input type="range" min=5 max=1000 value=15 id="pe_range" class="pe"/>
 
       </div>
       <div class="display">
@@ -195,7 +198,7 @@
 	<br/>
     
         <label for="pc_range">Plot size: <span id="pc_range_txt">15</span></label>
-        <input type="range" min=5 max=100 value=15 id="pc_range" class="pc"/>
+        <input type="range" min=5 max=1000 value=15 id="pc_range" class="pc"/>
 
       </div>
       <div class="display">
@@ -254,6 +257,8 @@
             top: 50
           }
         },
+	responsive: true,
+	maintainAspectRatio: false,
         events: [],
         animation: {
             duration: .001,
@@ -268,7 +273,7 @@
                     var meta = chartInstance.controller.getDatasetMeta(i);
                     meta.data.forEach(function (bar, index) {
                         var data = dataset.data[index];
-                        ctx.fillText(data, bar._model.x, bar._model.y - 5);
+                        ctx.fillText(data, bar._model.x + 15, bar._model.y + 8);
                     });
                 });
             }
@@ -374,6 +379,7 @@
         counts.push( dlist[dlist.length - 1 - i][0] );
       }
     
+      size_per_line = 25;
       if ( lang == "pe" ) {
         var dset = {
           labels: labels,
@@ -382,11 +388,13 @@
           }]
         }
         chart_pe.destroy();
+        console.log("destroy pe");
         chart_pe = new Chart(ctx_pe, {
-          type: 'bar',
+          type: 'horizontalBar',
           data: dset,
           options: opts,
         });
+        ctx_pe.style.height = plt_size * size_per_line;
       } else {
         var dset = {
           labels: labels,
@@ -395,11 +403,13 @@
           }]
         }
         chart_pc.destroy();
+        console.log("destroy pc");
         chart_pc = new Chart(ctx_pc, {
-          type: 'bar',
+          type: 'horizontalBar',
           data: dset,
           options: opts,
         });
+        ctx_pc.style.height = plt_size * size_per_line;
       }
       // Fix unresponsive input elements:
       window.scrollBy(0,-1);
