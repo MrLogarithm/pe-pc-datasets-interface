@@ -86,9 +86,39 @@
       <div class="sidebar">
       </div>
       <div class="display">
-        <h1></h1>
-        <p>Interface for the <i>n</i>-gram counts hosted at <a href="https://github.com/sfu-natlang/pe-pc-datasets">pe-pc-datasets</a>.
+	<h1>Proto-Elamite and proto-cuneiform <em>n</em>-gram counts</h1>
+        <p>This is an interface for exploring the <i>n</i>-gram counts hosted at <a href="https://github.com/sfu-natlang/pe-pc-datasets">pe-pc-datasets</a>.
         </p>
+	<p>
+	Explanation of parameters:
+	<ul>
+	  <li>
+	    n: The length of <em>n</em>-gram to display. <em>n</em> = 1 will show the frequency of individual signs; <em>n</em> = 2 will show frequencies for strings of two signs; etc.
+	  </li>
+	  <li>
+	    Exclude corrections? If checked, corrected signs (annotated with &lt; and &gt; in the original transcriptions) will not be counted.
+	  </li>
+	  <li>
+	    Collapse variants? If checked, sign variants will be counted as instances of their corresponding basic sign, e.g., M066~A will be counted as an instance of M066.
+	  </li>
+	  <li>
+	    Search string: if a search term is entered, the plot will only display counts for <em>n</em>-grams which contain the specified term.
+	  </li>
+	  <li>
+	    Plot size: how many columns to display. <em>n</em>-grams are displayed in order of decreasing frequency.
+	  </li>
+	  <li>
+	    Corpus: for proto-cuneiform, specify whether to return frequencies from Uruk III texts or Uruk IV texts.
+	  </li>
+	  <li>
+	    Split compounds: separate sign compounds into their constituent parts before counting sign frequencies, so that e.g. |GI&amp;GI| counts as two instances of GI rather than one instance of |GI&amp;GI|
+	  </li>
+	  <li>
+	    Ignore order? If checked, the order of signs in the proto-cuneiform transcriptions is ignored when counting co-occurences, so that e.g. DU EN~A PAP~A is counted as containing an instance of the &quot;bigram&quot; DU PAP~A.
+	  </li>
+	  </li>
+	</ul>
+	</p>
       </div>
     </div>
 
@@ -98,15 +128,23 @@
   
         <label for="pe_n"><i>n</i> = <span id="pe_n_txt">1</span></label>
         <input type="range" min="1" max="15" value="1" id="pe_n" class="pe"/>
+	<br/>
+	<br/>
   
         <label for="pe_excor">Exclude corrections?</label>
         <input type="checkbox" id="pe_excor" class="pe"/>
+	<br/>
+	<br/>
 
         <label for="pe_collapse">Collapse variants?</label>
         <input type="checkbox" id="pe_collapse" class="pe"/>
+	<br/>
+	<br/>
 
         <label for="pe_search">Search string:</label>
         <input type="text" id="pe_search" class="pe"/>
+	<br/>
+	<br/>
   
         <label for="pe_range">Plot size: <span id="pe_range_txt">15</span></label>
         <input type="range" min=5 max=100 value=15 id="pe_range" class="pe"/>
@@ -121,27 +159,40 @@
       <div class="sidebar">
         <h3>Proto-cuneiform</h3>
 
-        <label for="pc_corpus" style="text-align:center">Corpus:</label>
-        <span style="float:left;padding-top:20px">Uruk III</span>
-        <span style="float:right;padding-top:20px">Uruk IV</span>
+	<div style="width:100%;text-align:center;">
+	  <span>Corpus</span>
+	</div>
+
+        <span style="float:left;">Uruk III</span>
+        <span style="float:right;">Uruk IV</span>
         <input type="range" min="1" max="2" value="1" id="pc_corpus" class="pc"/>
+	<br/>
 	<br/>
     
         <label for="pc_n"><i>n</i> = <span id="pc_n_txt">1</span></label>
         <input type="range" min="1" max="15" value="1" id="pc_n" class="pc"/>
+	<br/>
+	<br/>
     
         <label for="pc_split">Split compounds?</label>
         <input type="checkbox" id="pc_split" class="pc"/>
+	<br/>
+	<br/>
     
         <label for="pc_collapse">Collapse variants?</label>
         <input type="checkbox" id="pc_collapse" class="pc"/>
-    
-        <label for="pc_order">Order matters?</label>
-        <input type="checkbox" id="pc_order" class="pc"/>
-    
 	<br/>
+	<br/>
+    
+        <label for="pc_order">Ignore order?</label>
+        <input type="checkbox" id="pc_order" class="pc"/>
+	<br/>
+	<br/>
+
         <label for="pc_search">Search string:</label>
         <input type="text" id="pc_search" class="pc"/>
+	<br/>
+	<br/>
     
         <label for="pc_range">Plot size: <span id="pc_range_txt">15</span></label>
         <input type="range" min=5 max=100 value=15 id="pc_range" class="pc"/>
@@ -258,9 +309,9 @@
       	}
       	var opt_order = ["ordered", "unordered"];
       	if ( document.getElementById( lang + "_order").checked ) {
-        	opt_order = opt_order[0];
-      	} else {
         	opt_order = opt_order[1];
+      	} else {
+        	opt_order = opt_order[0];
       	}
       	// Select correct data view:
       	var data = pc_data[corpus][opt_split][opt_merge][opt_order];
@@ -275,7 +326,7 @@
         if (lang == "pe") {
           return sign.trim().toLowerCase().includes(str.trim().toLowerCase());
         } else {
-          if ( document.getElementById("pc_order").checked ) {
+          if ( !( document.getElementById("pc_order").checked ) ) {
             return sign.trim().toLowerCase().includes(str.trim().toLowerCase());
           }
     
