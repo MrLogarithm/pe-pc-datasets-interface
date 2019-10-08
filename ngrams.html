@@ -152,6 +152,12 @@
         <label for="pe_range">Plot size: <span id="pe_range_txt" style="display:none;">15</span></label>
         <input type="number" min=5 max=1000 value=15 id="pe_range" class="pe"/>
 
+	<br/>
+	<br/>
+	<button onclick="save_pe()">
+	  Download this view of the data
+	</button>
+
       </div>
       <div class="display">
         <canvas id="canvas_pe" class="chart"></canvas>
@@ -200,6 +206,12 @@
         <label for="pc_range">Plot size: <span id="pc_range_txt" style="display:none;">15</span></label>
         <input type="number" min=5 max=1000 value=15 id="pc_range" class="pc"/>
 
+	<br/>
+	<br/>
+	<button onclick="save_pc()">
+	  Download this view of the data
+	</button>
+
       </div>
       <div class="display">
         <canvas id="canvas_pc" class="chart"></canvas>
@@ -209,6 +221,10 @@
     <script>
     var pe_data;
     var pc_data;
+    var labels_pe; // subset of data currently on display
+    var labels_pc; //
+    var counts_pe; // 
+    var counts_pc; //
     var ctx_pe = document.getElementById('canvas_pe');
     var chart_pe = new Chart(ctx_pe);
     var ctx_pc = document.getElementById('canvas_pc');
@@ -395,6 +411,8 @@
           options: opts,
         });
         ctx_pe.style.height = plt_size * size_per_line;
+        counts_pe = counts;
+        labels_pe = labels;
       } else {
         var dset = {
           labels: labels,
@@ -410,11 +428,47 @@
           options: opts,
         });
         ctx_pc.style.height = plt_size * size_per_line;
+        counts_pc = counts;
+        labels_pc = labels;
       }
       // Fix unresponsive input elements:
       window.scrollBy(0,-1);
       window.scrollBy(0,1);
     }
+
+    function save_pc() {
+      var file_content = "ngram,count\n";
+      for ( var i = 0; i < counts_pc.length; i++ ) {
+        file_content += labels_pc[i] + "," + counts_pc[i] + "\n";
+      }
+      download(file_content,"pc_ngrams_subset.csv","text/text");
+    }
+    function save_pe() {
+      var file_content = "ngram,count\n";
+      for ( var i = 0; i < counts_pe.length; i++ ) {
+        file_content += labels_pe[i] + "," + counts_pe[i] + "\n";
+      }
+      download(file_content,"pe_ngrams_subset.csv","text/text");
+    }
+    function download(data, filename, type) {
+      var file = new Blob([data], {type: type});
+      if (window.navigator.msSaveOrOpenBlob) // IE10+
+        window.navigator.msSaveOrOpenBlob(file, filename);
+      else { // Others
+        var a = document.createElement("a"),
+                url = URL.createObjectURL(file);
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+      }, 0);
+    }
+}
+
+
     
     </script>    
     <p style="width:100%;text-align:center;font-size:10pt;color:#aaa;">Questions? Bugs? Please let me know at &#108;&#111;&#098;&#111;&#114;&#110;&#064;&#115;&#102;&#117;&#046;&#099;&#097;</p>
