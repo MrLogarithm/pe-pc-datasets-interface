@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Sign Frequencies</title>
+  <title>PE Sign Frequencies</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Interactive display of sign frequencies from early scripts.">
+  <meta name="description" content="Interactive display of sign frequencies from the proto-Elamite script.">
   <meta name="author" content="Logan Born">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/bootstrap.min.css">
@@ -117,10 +117,82 @@
               <div class="row"> <!-- mainpage_row -->
                 <div class="col-md-12"> <!-- content -->
                   <br>
-		    <header class="pageheader">
-		    <h1>This page has moved!</h1>
+                  <header class="pageheader">
+		    <h1>Proto-Elamite <em>n</em>-grams</h1>
                   </header>
-		  Looking for sign counts? Click <a href="pe.html">here</a> for proto-Elamite sign frequencies, or <a href="pc.html">here</a> for proto-cuneiform sign frequencies.
+
+    <!--<div id="loading_shadow">
+      <div id="loading_overlay">
+        <p>Loading...</p>
+      </div>
+    </div>-->
+
+    <div class="group">
+      <div class="sidebar">
+        <h3>Chart Options</h3>
+  
+        <label for="pe_n">Length: <span id="pe_n_txt">1</span></label>
+        <input type="range" min="1" max="13" value="1" id="pe_n" class="pe"/>
+	<br/>
+	<br/>
+  
+        <label for="pe_excor">Exclude corrections?</label>
+        <input type="checkbox" id="pe_excor" class="pe"/>
+	<br/>
+	<br/>
+
+        <label for="pe_collapse">Collapse variants?</label>
+        <input type="checkbox" id="pe_collapse" class="pe"/>
+	<br/>
+	<br/>
+
+        <label for="pe_search">Search string:</label>
+        <input type="text" id="pe_search" class="pe"/>
+	<br/>
+	<br/>
+  
+        <label for="pe_range">Plot size: <span id="pe_range_txt" style="display:none;">15</span></label>
+        <input type="number" min=5 max=1000 value=15 id="pe_range" class="pe"/>
+
+	<br/>
+	<br/>
+	<button onclick="save_pe()">
+	  Download this view of the data
+	</button>
+
+      </div>
+      <div class="display">
+        <canvas id="canvas_pe" class="chart"></canvas>
+      </div>
+    </div> <!-- END CHART -->
+
+    <div class="group" style="margin-top:15px;">
+      <div>
+	<p>This interface presents the <i>n</i>-gram counts hosted at <a href="https://github.com/sfu-natlang/pe-pc-datasets">pe-pc-datasets</a>. These are pre-computed and stored as JSON files which you may access directly <a href="https://raw.githubusercontent.com/sfu-natlang/pe-pc-datasets/master/ngrams/pe_ngrams.json">here</a>.
+        </p>
+    
+	<p>
+	Explanation of parameters:
+	<ul>
+	  <li>
+	    Length: The length of <em>n</em>-gram to display. Length = 1 will show the frequency of individual signs; Length = 2 will show strings of two signs; etc.
+	  </li>
+	  <li>
+	    Exclude corrections? If checked, corrected signs (annotated with &lt;, &gt;, and ! in the original transcriptions) will not be counted.
+	  </li>
+	  <li>
+	    Collapse variants? If checked, sign variants will be counted as instances of their corresponding basic sign, e.g., M066~A will be counted as an instance of M066.
+	  </li>
+	  <li>
+	    Search string: if a search term is entered, the plot will only display <em>n</em>-grams which contain the search string.
+	  </li>
+	  <li>
+	    Plot size: how many rows to display. <em>n</em>-grams are displayed in order of decreasing frequency. <em>Chart.js breaks when the plot gets too large, so plot size is capped at 1000.</em>
+	  </li>
+	</ul>
+	</p>
+      </div>
+    </div>
 
                 </div><!--end of  content -->
               </div><!--end of mainpage_row -->
@@ -136,26 +208,29 @@
 
       <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
       <!-- Include all compiled plugins (below), or include individual files as needed -->
-
   <script>
-    var pc_data;
-    var labels_pc; //
-    var counts_pc; //
-    var ctx_pc = document.getElementById('canvas_pc');
-    var chart_pc = new Chart(ctx_pc);
+    var pe_data;
+    var labels_pe; // subset of data currently on display
+    var counts_pe; // 
+    var ctx_pe = document.getElementById('canvas_pe');
+    var chart_pe = new Chart(ctx_pe);
     
     $().ready( function(){
-    
-      //$('.pc').change( function(){draw_ngrams("pc");} );
-      $(document).on("change",".pc", function(e){
-	draw_ngrams("pc",e);
+      // Get ngram data as JSON:
+      $.get({
+        url: "https://raw.githubusercontent.com/sfu-natlang/pe-pc-datasets/master/ngrams/pe_ngrams.json",
+        dataType:'json',
+        success:function(result) {
+          pe_data = result;
+          draw_ngrams("pe");
+        }
       });
+      $('.pe').change( function(){draw_ngrams("pe");} );
     
-      $('#loading_shadow').hide();
-      draw_ngrams("pc",{"target":{"id":"uruk5"}});
+      //$('#loading_shadow').hide();
     });
     
-    function draw_ngrams( lang, src ) {
+    function draw_ngrams( lang ) {
     
       var opts = {
         legend: {
@@ -177,7 +252,7 @@
           padding: {
             top: 50,
 	    right: 50,
-	    left:  50,
+	    left: 50,
           }
         },
 	responsive: true,
@@ -204,145 +279,97 @@
     
       };
     
-      if ( true ) {
-	var opt_corpora = [];
-	if ( document.getElementById( "uruk5").checked ) {
-		opt_corpora.push( "uruk v" );
-	}
-	if ( document.getElementById( "uruk4").checked ) {
-		opt_corpora.push( "uruk iv" );
-	}
-	if ( document.getElementById( "uruk3").checked ) {
-		opt_corpora.push( "uruk iii" );
-	}
-	opt_corpora = "[\'"+ opt_corpora.join("\',\'")+"\']";
-    
-	var opt_format = "normal";
-      	if ( document.getElementById( "pc_split").checked 
-	  && document.getElementById( "pc_collapse").checked ) {
-	  opt_format = "split_merge";
-	} else if ( document.getElementById( "pc_split").checked ) {
-	  opt_format = "split";
-	} else if ( document.getElementById( "pc_collapse").checked ) {
-	  opt_format = "merge";
-	}
-
-      	var opt_order = "false";
-      	if ( document.getElementById( "pc_order").checked ) {
-	  opt_order = "true"
-      	}
-
-      }
-
-      if ( src.target.id == "uruk5"
-        || src.target.id == "uruk4"
-        || src.target.id == "uruk3"
-        || src.target.id == "pc_split"
-        || src.target.id == "pc_collapse"
-        || src.target.id == "pc_order"
-      ) {
-      $.post({
-        url: "http://127.0.0.1:5000/ngrams/api/",
-	crossDomain: true,
-        dataType:'jsonp',
-	data:{"format":opt_format,"order":opt_order,"period":opt_corpora},
-        success:function(result) {
-            data = result;
-	    finish();
-	}});} else {
-	finish();
-	}
-      function finish() {
-	    //console.log(data);
-
-            var n = parseInt(document.getElementById( lang + "_n").value);
-            document.getElementById( lang + "_n_txt").innerHTML = n;
-          
-            var search_str = document.getElementById( lang + "_search").value;
-          
-            function search( sign, str, lang ) {
-              if (lang == "pe") {
-                return sign.trim().toLowerCase().includes(str.trim().toLowerCase());
-              } else {
-                /*if ( !( document.getElementById("pc_order").checked ) ) {
-                  return sign.trim().toLowerCase().includes(str.trim().toLowerCase());
-                }*/
-          
-                var split = str.trim().toLowerCase().split(" ");
-                for ( var i = 0; i < split.length; i++ ) {
-                  str = split[i];
-                  if ( ! sign.trim().toLowerCase().includes(str) ) {
-          	      return false;
-          	    }
-                }
-                return true;
-              }
-            }
-            
-            var dlist = [];
-            for ( var sign in data ) {
-              if ( sign.trim().match("^[ X]*$") || sign.includes("...") || (sign.split(" ").length - 1) != n-1 ) {
-                continue;
-              } else if ( search_str.trim() == "" || search(sign,search_str,lang) ) {
-                dlist.push( [data[sign], sign] );
-              }
-            }
-            dlist.sort(function(a,b){
-      	if ( a[0] > b[0] ) {
-          	return 1
-      	} else if (a[0] == b[0] ) {
-      	  return 0;
+      if ( lang == "pe" ) {
+      	var opt_corr = ["corrections included", "corrections omitted"];
+      	if ( document.getElementById( lang + "_excor").checked ) {
+        	opt_corr = opt_corr[1];
       	} else {
-      	  return -1;
+        	opt_corr = opt_corr[0];
       	}
-            });
-          
-            var labels = [];
-            var counts = [];
-          
-            var labels = [];
-          
-            var plt_size = parseInt(document.getElementById( lang + "_range").value);
-            if ( plt_size > dlist.length ) {
-              plt_size = dlist.length;
-            }
-            document.getElementById( lang + "_range_txt").innerHTML = plt_size;
-            for ( var i = 0; i < plt_size; i++ ) {
-              labels.push( dlist[dlist.length - 1 - i][1] );
-              counts.push( dlist[dlist.length - 1 - i][0] );
-            }
-          
-            size_per_line = 25;
-            if ( true ) {
-              var dset = {
-                labels: labels,
-                datasets: [{
-                  data: counts,
-                }]
-              }
-              chart_pc.destroy();
-              chart_pc = new Chart(ctx_pc, {
-                type: 'horizontalBar',
-                data: dset,
-                options: opts,
-              });
-              ctx_pc.style.height = plt_size * size_per_line;
-              counts_pc = counts;
-              labels_pc = labels;
-            }
-            // Fix unresponsive input elements:
-            window.scrollBy(0,-1);
-            window.scrollBy(0,1);
-
-        }
-    }
-    
-    function save_pc() {
-      var file_content = "ngram,count\n";
-      for ( var i = 0; i < counts_pc.length; i++ ) {
-        file_content += labels_pc[i] + "," + counts_pc[i] + "\n";
+      	var opt_merge = ["variants separate", "variants merged"];
+      	if ( document.getElementById( lang + "_collapse").checked ) {
+        	opt_merge = opt_merge[1];
+      	} else {
+        	opt_merge = opt_merge[0];
+      	}
+      	// Select correct data view:
+      	var data = pe_data[opt_corr][opt_merge];
       }
-      download(file_content,"pc_ngrams_subset.csv","text/text");
+    
+      var n = parseInt(document.getElementById( lang + "_n").value);
+      document.getElementById( lang + "_n_txt").innerHTML = n;
+    
+      var search_str = document.getElementById( lang + "_search").value;
+    
+      function search( sign, str, lang ) {
+        if (lang == "pe") {
+          return sign.trim().toLowerCase().includes(str.trim().toLowerCase());
+        }
+      }
+      
+      var dlist = [];
+      for ( var sign in data ) {
+        if ( sign.trim().match("^[ X]*$") || sign.includes("...") || (sign.split(" ").length - 1) != n-1 ) {
+          continue;
+        } else if ( search_str.trim() == "" || search(sign,search_str,lang) ) {
+          dlist.push( [data[sign], sign] );
+        }
+      }
+      dlist.sort(function(a,b){
+	if ( a[0] > b[0] ) {
+    	return 1
+	} else if (a[0] == b[0] ) {
+	  return 0;
+	} else {
+	  return -1;
+	}
+      });
+    
+      var labels = [];
+      var counts = [];
+    
+      var labels = [];
+    
+      var plt_size = parseInt(document.getElementById( lang + "_range").value);
+      if ( plt_size > dlist.length ) {
+        plt_size = dlist.length;
+      }
+      document.getElementById( lang + "_range_txt").innerHTML = plt_size;
+      for ( var i = 0; i < plt_size; i++ ) {
+        labels.push( dlist[dlist.length - 1 - i][1] );
+        counts.push( dlist[dlist.length - 1 - i][0] );
+      }
+    
+      size_per_line = 25;
+      if ( lang == "pe" ) {
+        var dset = {
+          labels: labels,
+          datasets: [{
+            data: counts,
+          }]
+        }
+        chart_pe.destroy();
+        //console.log("destroy pe");
+        chart_pe = new Chart(ctx_pe, {
+          type: 'horizontalBar',
+          data: dset,
+          options: opts,
+        });
+        ctx_pe.style.height = plt_size * size_per_line;
+        counts_pe = counts;
+        labels_pe = labels;
+      } 
+      // Fix unresponsive input elements:
+      window.scrollBy(0,-1);
+      window.scrollBy(0,1);
+    }
+
+    function save_pe() {
+      var file_content = "ngram,count\n";
+      for ( var i = 0; i < counts_pe.length; i++ ) {
+        file_content += labels_pe[i] + "," + counts_pe[i] + "\n";
+      }
+      download(file_content,"pe_ngrams_subset.csv","text/text");
     }
     function download(data, filename, type) {
       var file = new Blob([data], {type: type});
@@ -361,8 +388,7 @@
       }, 0);
     }
 }
-    
-    </script>
+  </script>
   
   </body>
 </html>

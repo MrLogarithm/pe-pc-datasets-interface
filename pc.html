@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Sign Frequencies</title>
+  <title>PC Sign Frequencies</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Interactive display of sign frequencies from early scripts.">
+  <meta name="description" content="Interactive display of sign frequencies from the proto-cuneiform script.">
   <meta name="author" content="Logan Born">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/bootstrap.min.css">
@@ -117,10 +117,114 @@
               <div class="row"> <!-- mainpage_row -->
                 <div class="col-md-12"> <!-- content -->
                   <br>
-		    <header class="pageheader">
-		    <h1>This page has moved!</h1>
+                  <header class="pageheader">
+		    <h1>Proto-cuneiform <em>n</em>-grams</h1>
                   </header>
-		  Looking for sign counts? Click <a href="pe.html">here</a> for proto-Elamite sign frequencies, or <a href="pc.html">here</a> for proto-cuneiform sign frequencies.
+
+    <!--<div id="loading_shadow">
+      <div id="loading_overlay">
+        <p>Loading...</p>
+      </div>
+    </div>-->
+
+    <div class="group">
+      <div class="sidebar">
+        <h3>Chart Options</h3>
+
+	<div style="width:100%;text-align:center;">
+	  <span><b>Corpora</b></span>
+	</div>
+
+	<div style="padding: 0px 5px;">
+	  <span>Uruk V</span><br/>
+          <input type="checkbox" checked id="uruk5" class="pc"/>
+	</div>
+	<div style="padding: 0px 5px;">
+	  <span>Uruk IV</span><br/>
+          <input type="checkbox" checked id="uruk4" class="pc"/>
+	</div>
+	<div style="padding: 0px 5px; margin-bottom:1em;">
+	  <span>Uruk III</span><br/>
+          <input type="checkbox" checked id="uruk3" class="pc"/>
+	</div>
+
+	<br/>
+	<br/>
+    
+        <label for="pc_n">Length = <span id="pc_n_txt">1</span></label>
+        <input type="range" min="1" max="15" value="1" id="pc_n" class="pc"/>
+	<br/>
+	<br/>
+    
+        <label for="pc_split">Split compounds?</label>
+        <input type="checkbox" id="pc_split" class="pc"/>
+	<br/>
+	<br/>
+    
+        <label for="pc_collapse">Collapse variants?</label>
+        <input type="checkbox" id="pc_collapse" class="pc"/>
+	<br/>
+	<br/>
+    
+        <label for="pc_order">Preserve order?</label>
+        <input type="checkbox" id="pc_order" class="pc"/>
+	<br/>
+	<br/>
+
+        <label for="pc_search">Search string:</label>
+        <input type="text" id="pc_search" class="pc"/>
+	<br/>
+	<br/>
+    
+        <label for="pc_range">Plot size: <span id="pc_range_txt" style="display:none;">15</span></label>
+        <input type="number" min=5 max=1000 value=15 id="pc_range" class="pc"/>
+
+	<br/>
+	<br/>
+	<button onclick="save_pc()">
+	  Download this view of the data
+	</button>
+
+      </div>
+      <div class="display">
+        <canvas id="canvas_pc" class="chart"></canvas>
+      </div>
+    </div> 
+    <div class="group" style="margin-top:15px;">
+      <div>
+	<p>This interface presents <i>n</i>-gram counts derived from a copy of <a href="https://cdli.ucla.edu/search/search_results.php?SearchMode=Text&requestFrom=Search&PrimaryPublication=&Author=&PublicationDate=&SecondaryPublication=&Collection=&AccessionNumber=&MuseumNumber=&Provenience=&ExcavationNumber=&Period=uruk&DatesReferenced=&ObjectType=tablet&ObjectRemarks=&Material=&TextSearch=&TranslationSearch=&CommentSearch=&StructureSearch=&Language=&Genre=&SubGenre=&CompositeNumber=&SealID=&ObjectID=&ATFSource=&CatalogueSource=&TranslationSource=">the CDLI Uruk corpus</a> retrieved on 19 May 2020. The counts are computed on-the-fly based on your settings in the sidebar. The code used to derive the counts is available <a href="https://github.com/sfu-natlang/pe-pc-datasets">here</a>.
+        </p>
+    
+	<p>
+	Explanation of parameters:
+	<ul>
+	  <li>
+	    Corpora: specifies which periods to include in the counts.
+	  </li>
+	  <li>
+	    Length: The length of <em>n</em>-gram to display. Length = 1 will show the frequency of individual signs; Length = 2 will show strings of two signs; etc.
+	  </li>
+	  <li>
+	    Split compounds: separate sign compounds into their constituent parts before counting sign frequencies, so that e.g. |GI&amp;GI| counts as two instances of GI rather than one instance of |GI&amp;GI|
+	  </li>
+	  <li>
+	    Collapse variants? If checked, sign variants will be counted as instances of their corresponding basic sign, e.g., KUR~A will be counted as an instance of KUR.
+	  </li>
+	  <li>
+	    Preserve order? By default, the order of signs in the transcription is ignored, so that e.g. DU EN~A PAP~A is taken to contain an instance of the bigram DU PAP~A (which, in the unordered case, is equivalent to the bigram PAP~A DU, but to avoid ambiguity this will always be printed in alphabetic order as DU PAP~A).<br/>
+	    
+	    If this box is checked then the order of signs in the transcription is respected, so DU EN~A is considered distinct from EN~A DU, and neither is taken to occur in the string DU EN~A PAP~A.
+	  </li>
+	  <li>
+	    Search string: if a search term is entered, the plot will only display <em>n</em>-grams which contain the search string.
+	  </li>
+	  <li>
+	    Plot size: how many rows to display. <em>n</em>-grams are displayed in order of decreasing frequency. <em>Chart.js breaks when the plot gets too large, so plot size is capped at 1000.</em>
+	  </li>
+	</ul>
+	</p>
+      </div>
+    </div>
 
                 </div><!--end of  content -->
               </div><!--end of mainpage_row -->
@@ -242,7 +346,7 @@
         || src.target.id == "pc_order"
       ) {
       $.post({
-        url: "http://127.0.0.1:5000/ngrams/api/",
+        url: "http://mrlogarithm.pythonanywhere.com/ngrams/api/",
 	crossDomain: true,
         dataType:'jsonp',
 	data:{"format":opt_format,"order":opt_order,"period":opt_corpora},
