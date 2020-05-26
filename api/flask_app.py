@@ -1,4 +1,4 @@
-#!flask-env/bin/python
+#!/home/MrLogarithm/.virtualenvs/flask-ngrams-env/bin/python
 from flask import Flask, jsonify, request, abort, make_response
 from collections import defaultdict
 from itertools import chain, combinations
@@ -16,7 +16,7 @@ def powerset( iterable ):
 def reduce( sign, split=False, merge=False ):
 
     variantRegex = "(~|@)[^X.+|()&]+"
-    
+
     # Problem cases to be aware of:
     # |NINDA2X((UDU~A+TAR)~B)|
     # |(SZAXHI@G~A)~B|
@@ -28,14 +28,14 @@ def reduce( sign, split=False, merge=False ):
         sign = "|AN.AB~A|"
     if sign == "NERGAL~X(KISZ)":
         sign = "KISZ"
-    
+
     if merge and "~" in sign or "@" in sign:
         sign = re.sub( variantRegex, '', sign )
         sign = re.sub( "^\|\((.*)\)\|$", "|\\1|", sign ) # replace |( and )| with |
         sign = re.sub( "\(\((.*)\)\)", "(\\1)", sign ) # replace (( and )) with ( and )
 
     if split and ("|" in sign):
-        
+
         # Even if we don't merge sign variants, we need to get rid of
         # things like |( A x B )~b|, because we want to end up with
         # [A, B], not [A, B~b]:
@@ -50,21 +50,21 @@ def reduce( sign, split=False, merge=False ):
         # sign = re.sub("([^X ])X", "\\1 ", sign) # < IF X should be counted as a sign
         sign = sign.split(" ")
         sign = [ component for component in sign if component != "" ]
-    
+
     # For consistency, always return a list when split is True
     if split and not isinstance(sign,list):
         sign = [sign]
     return sign
 
 def simplify_line( line, split=False, merge=False ):
-    line = list(map( 
+    line = list(map(
             lambda sign: reduce( sign, split=split, merge=merge ),
             line
         ))
     if split:
         line = sum( line, [] )
     return line
-    
+
 def get_transliterations( text ):
     text = text[ text.index( "Transliteration:" ) : ]
     text = text.upper().split("\n")[1:]
@@ -118,7 +118,7 @@ def get_transliterations( text ):
 
         lines.append( line )
     lines = {
-            "normal":lines, 
+            "normal":lines,
             "merge":list(map(lambda line:simplify_line( line, merge=True , split=False),lines)),
             "split":list(map(lambda line:simplify_line( line, merge=False, split=True ),lines)),
             "merge_split":list(map(lambda line:simplify_line( line, merge=True , split=True ),lines)),
@@ -130,13 +130,13 @@ def get_transliterations( text ):
 ###############
 # LOAD CORPUS #
 
-pc_file = open( "cdli_result_20200519.txt" )
+pc_file = open( "/home/MrLogarithm/ngrams_api/cdli_result_20200519.txt" )
 pc_text = pc_file.read()
 pc_file.close()
 
 delim = "Primary publication"
-pc_text = [ 
-        delim+text 
+pc_text = [
+        delim+text
         for text in pc_text.split( delim )[1:]
     ]
 
@@ -196,7 +196,7 @@ def get_counts( opts ):
         except:
             return make_response(jsonify({'error': 'Malformed request. "numeric" should be "true" or "false", got %s.'%(opts["numeric"])}), 400)
         del opts["numeric"]
-    
+
     for text in corpus:
 
         # Filter to chosen selection:
@@ -241,6 +241,10 @@ def get_counts( opts ):
     #"genre":"admin",
     #} )
 
+@app.route('/', methods=['GET'])
+def get():
+    return "The API endpoint is /ngrams/api/"
+
 @app.route('/ngrams/api/', methods=['GET'])
 def get_counts_get():
     callback = str(request.args.get("callback"))
@@ -264,11 +268,11 @@ def get_counts_post():
     if not request.json:
         return make_response(
                 jsonify({
-                    'error': 
+                    'error':
                         'Requests must be JSON formatted'
                     }), 400
                 )
-    return get_counts( request.json ) 
+    return get_counts( request.json )
 
 @app.errorhandler(404)
 def not_found(error):
