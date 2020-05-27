@@ -33,6 +33,12 @@ def reduce( sign, split=False, merge=False ):
         sign = re.sub( variantRegex, '', sign )
         sign = re.sub( "^\|\((.*)\)\|$", "|\\1|", sign ) # replace |( and )| with |
         sign = re.sub( "\(\((.*)\)\)", "(\\1)", sign ) # replace (( and )) with ( and )
+    
+    # Sometimes 1(...) is omitted around numerals,
+    # eg in |LAGAB~bx(HIxN04)|. Remove the extraneous
+    # parenthesis that this introduces:
+    if sign.count(")") == 1:
+        sign = sign.replace(")","")
 
     if split and ("|" in sign):
 
@@ -63,6 +69,11 @@ def simplify_line( line, split=False, merge=False ):
         ))
     if split:
         line = sum( line, [] )
+    # Get rid of errors introduced by N(...) notation:
+    line = [sign for sign in line 
+            if sign != "N" 
+            and not sign.startswith("N(")
+            and not re.match("^N[0-9]",sign)]
     return line
 
 def get_transliterations( text ):
