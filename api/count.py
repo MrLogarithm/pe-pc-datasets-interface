@@ -164,13 +164,16 @@ for text in pc_text:
 ################
 # NGRAM COUNTS #
 
-def get_counts( format_, query, order, numeric, lines, periods, genre ):
+def get_counts( format_, query, order, numeric, lines, periods, genre, provenience ):
     counts = defaultdict(int)
 
     for text in corpus:
         
         # Filter texts:
         if not any(p in text['period'] for p in periods):
+            continue
+            
+        if not any(p == text['provenience'] for p in provenience):
             continue
             
         if genre is not None:

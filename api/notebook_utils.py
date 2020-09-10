@@ -12,7 +12,7 @@ def format_label( sign ):
     sign = re.sub( "([^x|])X", "\\1x", sign )
     return sign
 
-def show_result( format_, query, order, numeric, graph, plt_size, length, lines, urukiii, urukiv, urukv, textOrder, admin ):
+def show_result( format_, query, order, numeric, graph, plt_size, length, lines, urukiii, urukiv, urukv, textOrder, admin, **locations ):
     query = query.upper()
     periods = []
 
@@ -27,7 +27,12 @@ def show_result( format_, query, order, numeric, graph, plt_size, length, lines,
     if admin:
         genre = 'admin'
         
-    result = api.get_counts( format_, query, order, numeric, lines, periods, genre )
+    provenience = []
+    for location, include in locations.items():
+        if include:
+            provenience.append(location)
+
+    result = api.get_counts( format_, query, order, numeric, lines, periods, genre, provenience )
     if length > 0:
         result = { k:v for k,v in result.items() if len(k.split(" ")) == length }
     if graph == 'graph':
@@ -151,9 +156,23 @@ textOrderWidget = widgets.Dropdown(
     description='Order by...',
     disabled=False,
 )
-    
+locations = sorted(list(set([text['provenience'] for text in api.corpus])))
+locationWidgets = [widgets.Checkbox(
+    value=True,
+    description=loc if loc != '' else '[no provenience recorded]',
+    disabled=False,
+    indent=False
+) for loc in locations]
+# provWidget = widgets.Dropdown(
+#     options=locations,
+# #     value='freq',
+#     description='Order by...',
+#     disabled=False,
+# )
+
+
 i = interactive_output(
-    show_result, {
+    show_result, dict({
         'format_': formatWidget,
         'query': queryWidget,
         'order': orderWidget,
@@ -167,7 +186,7 @@ i = interactive_output(
         'urukiv': urukivWidget,
         'urukv': urukvWidget,
         'textOrder': textOrderWidget,
-    })
+    }, **{locations[i]:locationWidgets[i] for i in range(len(locations))}))
 
 def run():
     rows = [ 
@@ -180,6 +199,11 @@ def run():
         [],
         [widgets.Label(value="Included periods:")],
         [urukiiiWidget,urukivWidget,urukvWidget], 
+        [],
+        [widgets.Label(value="Included locations:")],
+    ] + [
+        locationWidgets[i:i+3] for i in range(0,len(locationWidgets),3)
+    ] + [
         [],
         [widgets.Label(value="Output format:"),graphWidget], 
         [],
