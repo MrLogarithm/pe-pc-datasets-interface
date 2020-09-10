@@ -3,23 +3,37 @@ from ipywidgets import interactive_output, HBox
 import ipywidgets as widgets
 from matplotlib import pyplot as plt
 from IPython.display import display, HTML
-import pprint
 import re
 
 def format_label( sign ):
     # Lowercase the sign variant annotations:
     sign = re.sub( "~[^ |+.&X]*", lambda m:m.group(0).lower(), sign )
     # Lowercase x, only when it joins a compound:
-    sign = re.sub( "([^x])X", "\\1x", sign )
+    sign = re.sub( "([^x|])X", "\\1x", sign )
     return sign
 
-def show_result( format_, query, order, numeric, graph, plt_size, length, lines ):
+def show_result( format_, query, order, numeric, graph, plt_size, length, lines, urukiii, urukiv, urukv, textOrder, admin ):
     query = query.upper()
-    result = api.get_counts( format_, query, order, numeric, lines )
+    periods = []
+
+    if urukiii:
+        periods += ['uruk iii']
+    if urukiv:
+        periods += ['uruk iv']
+    if urukv:
+        periods += ['uruk v']
+
+    genre = None
+    if admin:
+        genre = 'admin'
+        
+    result = api.get_counts( format_, query, order, numeric, lines, periods, genre )
     if length > 0:
         result = { k:v for k,v in result.items() if len(k.split(" ")) == length }
     if graph == 'graph':
         data = sorted([ (count,format_label(sign)) for sign, count in result.items() ], reverse=True)
+        if textOrder == 'alpha':
+            data = sorted(data, key=lambda x: x[1])
         
         if plt_size > len(data):
             plt_size = len(data)
@@ -33,7 +47,16 @@ def show_result( format_, query, order, numeric, graph, plt_size, length, lines 
             plt.text( y_ * 1.01, x_-0.15, value )
         plt.margins(0.1, 0.015)
     else:
-        pprint.PrettyPrinter(indent=4).pprint(result)
+        print("{")
+        if textOrder == 'alpha':
+            data = sorted([ (sign, count) for sign,count in result.items() ])
+            for sign, count in data:
+                print("\t\"%s\": %d,"%(sign,count))
+        else:
+            data = sorted([ (count, sign) for sign,count in result.items() ],reverse=True)
+            for count, sign in data:
+                print("\t\"%s\": %d,"%(sign,count))
+        print("}")
 
 formatWidget = widgets.Dropdown(
     options=[
@@ -65,7 +88,7 @@ numericWidget = widgets.Checkbox(
     indent=False
 )
 linesWidget = widgets.Checkbox(
-    value=True,
+    value=False,
     description='Count lines instead of tokens?',
     disabled=False,
     indent=False
@@ -76,7 +99,7 @@ graphWidget = widgets.Dropdown(
         'text',
     ],
     value='text',
-    description='Output:',
+    description='',
     disabled=False,
 )
 plt_sizeWidget = widgets.IntSlider(
@@ -95,6 +118,39 @@ lengthWidget = widgets.IntSlider(
     description='Length',
     continuous_update=False
 )
+adminWidget = widgets.Checkbox(
+    value=True,
+    description='Limit to administrative texts?',
+    disabled=False,
+    indent=False
+)
+urukiiiWidget = widgets.Checkbox(
+    value=True,
+    description='Uruk III',
+    disabled=False,
+    indent=False
+)
+urukivWidget = widgets.Checkbox(
+    value=True,
+    description='Uruk IV',
+    disabled=False,
+    indent=False
+)
+urukvWidget = widgets.Checkbox(
+    value=True,
+    description='Uruk V',
+    disabled=False,
+    indent=False
+)
+textOrderWidget = widgets.Dropdown(
+    options=[
+        ('frequency','freq'),
+        ('alphanumeric','alpha'),
+    ],
+    value='freq',
+    description='Order by...',
+    disabled=False,
+)
     
 i = interactive_output(
     show_result, {
@@ -103,13 +159,36 @@ i = interactive_output(
         'order': orderWidget,
         'numeric': numericWidget, 
         'graph': graphWidget, 
+        'admin': adminWidget,
         'plt_size': plt_sizeWidget,
         'length': lengthWidget,
-        'lines': linesWidget
+        'lines': linesWidget,
+        'urukiii': urukiiiWidget,
+        'urukiv': urukivWidget,
+        'urukv': urukvWidget,
+        'textOrder': textOrderWidget,
     })
 
 def run():
-    rows = [ [formatWidget,graphWidget], [queryWidget,plt_sizeWidget], [lengthWidget], [linesWidget], [orderWidget], [numericWidget], [], [i] ]
+    rows = [ 
+        [queryWidget,formatWidget],
+        [lengthWidget],
+        [linesWidget], 
+        [orderWidget], 
+        [numericWidget],
+        [adminWidget],
+        [],
+        [widgets.Label(value="Included periods:")],
+        [urukiiiWidget,urukivWidget,urukvWidget], 
+        [],
+        [widgets.Label(value="Output format:"),graphWidget], 
+        [],
+        [textOrderWidget],
+        [],
+        [plt_sizeWidget], 
+        [], 
+        [i] 
+    ]
     for row in rows:
         display(HBox(row))
     display(HTML('<style> .widget-checkbox { margin-left: 70px; } </style>'))

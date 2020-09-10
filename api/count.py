@@ -114,7 +114,7 @@ def get_transliterations( text ):
         line = line[line.index(" ") + 1:]
         # Remove count preceding ,
         if ',' in line:
-          line = line[line.index(",")+1:].strip()
+            line = line[line.index(",")+1:].strip()
         # Split signs apart:
         line = line.split(" ")
         # Remove delimiters:
@@ -164,10 +164,18 @@ for text in pc_text:
 ################
 # NGRAM COUNTS #
 
-def get_counts( format_, query, order, numeric, lines ):
+def get_counts( format_, query, order, numeric, lines, periods, genre ):
     counts = defaultdict(int)
 
     for text in corpus:
+        
+        # Filter texts:
+        if not any(p in text['period'] for p in periods):
+            continue
+            
+        if genre is not None:
+            if genre not in text['genre']:
+                continue
 
         for line in text["transliteration"][format_]:
             line_counts = defaultdict(int)
