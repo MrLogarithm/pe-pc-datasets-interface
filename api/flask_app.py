@@ -1,10 +1,10 @@
 #!/home/MrLogarithm/.virtualenvs/flask-ngrams-env/bin/python
-from flask import Flask, jsonify, request, abort, make_response
+#from flask import Flask, jsonify, request, abort, make_response
 from collections import defaultdict
 from itertools import chain, combinations
 import json, re
 
-app = Flask(__name__)
+#app = Flask(__name__)
 
 ##############################
 # SETUP and HELPER FUNCTIONS #
@@ -37,8 +37,8 @@ def reduce( sign, split=False, merge=False ):
     # Sometimes 1(...) is omitted around numerals,
     # eg in |LAGAB~bx(HIxN04)|. Remove the extraneous
     # parenthesis that this introduces:
-    if sign.count(")") == 1:
-        sign = sign.replace(")","")
+    #if sign.count(")") == 1:
+        #sign = sign.replace(")","")
 
     if split and ("|" in sign):
 
@@ -50,7 +50,7 @@ def reduce( sign, split=False, merge=False ):
 
         sign = re.sub("\|", " ", sign)
         sign = re.sub("([^0-9N])\(+", "\\1", sign)
-        sign = re.sub("(([^0-9]{2})|([^0-9][0-9])|([0-9][^0-9]))\)+", "\\1", sign)
+        sign = re.sub("(([^0-9]{2})|([^0-9][0-9])|([0-9][^0-9])|ZATU[0-9]{3})\)+", "\\1", sign)
         sign = re.sub("[\.+&]", " ", sign)
         sign = re.sub("X", " ", sign)
         # sign = re.sub("([^X ])X", "\\1 ", sign) # < IF X should be counted as a sign
@@ -140,7 +140,7 @@ def get_transliterations( text ):
 ###############
 # LOAD CORPUS #
 
-pc_file = open( "/home/MrLogarithm/ngrams_api/cdli_result_20200519.txt" )
+pc_file = open( "./cdli_result_20200519.txt" )
 pc_text = pc_file.read()
 pc_file.close()
 
@@ -168,9 +168,10 @@ for text in pc_text:
 ################
 # NGRAM COUNTS #
 
-def get_counts( opts ):
+def get_counts( format_, query, order, numeric, lines ):
     counts = defaultdict(int)
 
+    """
     format_ = "normal"
     if "format" in opts:
         format_ = opts["format"].lower()
@@ -183,49 +184,44 @@ def get_counts( opts ):
         del opts["query"]
     order = True
     if "order" in opts:
-        try:
-            if opts["order"].lower() == "true":
-                order = True
-            elif opts["order"].lower() == "false":
-                order = False
-            else:
-                raise ValueError
-        except:
-            return make_response(
-                jsonify({'error': 'Malformed request. "order" should be "true" or "false", got %s'%(opts["order"])}), 400)
+        if opts["order"].lower() == "true":
+            order = True
+        elif opts["order"].lower() == "false":
+            order = False
+        else:
+            raise ValueError
         del opts["order"]
     numeric = False
     if "numeric" in opts:
-        try:
-            if opts["numeric"].lower() == "true":
-                numeric = True
-            elif opts["numeric"].lower() == "false":
-                numeric = False
-            else:
-                raise ValueError
-        except:
-            return make_response(jsonify({'error': 'Malformed request. "numeric" should be "true" or "false", got %s.'%(opts["numeric"])}), 400)
+        if opts["numeric"].lower() == "true":
+            numeric = True
+        elif opts["numeric"].lower() == "false":
+            numeric = False
+        else:
+            raise ValueError
         del opts["numeric"]
+    """
 
     for text in corpus:
 
         # Filter to chosen selection:
-        if any( key.lower() not in text for key in opts ):
-            continue
-        skip = False
-        for key in opts:
-            if isinstance( opts[key], list ):
-                if not any( value.lower() in text[key.lower()] for value in opts[key] ):
-                    skip = True
-                    break
-            else:
-                if opts[key].lower() not in text[key.lower()]:
-                    skip = True
-                    break
-        if skip:
-            continue
+        #if any( key.lower() not in text for key in opts ):
+            #continue
+        #skip = False
+        #for key in opts:
+            #if isinstance( opts[key], list ):
+                #if not any( value.lower() in text[key.lower()] for value in opts[key] ):
+                    #skip = True
+                    #break
+            #else:
+                #if opts[key].lower() not in text[key.lower()]:
+                    #skip = True
+                    #break
+        #if skip:
+            #continue
 
         for line in text["transliteration"][format_]:
+            line_counts = defaultdict(int)
             if order:
                 for length in range(1,len(line)+1):
                     for start in range(len(line)-length+1):
@@ -234,7 +230,8 @@ def get_counts( opts ):
                             continue
                         if not numeric and any( re.match("^[0-9]+\(", sign) for sign in ngram ):
                             continue
-                        counts[ngram] += 1
+                        #counts[ngram] += 1
+                        line_counts[ngram] += 1
             else:
                 for ngram in powerset( line ):
                     ngram = tuple(sorted(ngram))
@@ -242,55 +239,69 @@ def get_counts( opts ):
                         continue
                     if not numeric and any( re.match("^[0-9]+\(", sign) for sign in ngram ):
                         continue
+                    line_counts[ngram] += 1
+            for ngram, count in line_counts.items():
+                if lines:
                     counts[ngram] += 1
-    counts = { " ".join(key): counts[key] for key in counts }
-    return make_response( jsonify( counts ), 200 )
+                else:
+                    counts[ngram] += count
+    query = query.upper().strip()
+    counts = { " ".join(key): counts[key] for key in counts } # if query in key }
+    if order:
+        counts = { k:v for k,v in counts.items() if query in k }
+    else:
+        counts = { k:v for k,v in counts.items() 
+                   if all(
+                       any(word in k_ for k_ in k.split(" ")) 
+                       for word in query.split(" ")) }
+    # TODO filter to query
+    return counts
 
 #counts = get_counts( {"format":"normal",
     # "period":"uruk iii",
     #"genre":"admin",
     #} )
 
-@app.route('/', methods=['GET'])
-def get():
-    return "The API endpoint is /ngrams/api/"
+#@app.route('/', methods=['GET'])
+#def get():
+    #return "The API endpoint is /ngrams/api/"
 
-@app.route('/ngrams/api/', methods=['GET'])
-def get_counts_get():
-    callback = str(request.args.get("callback"))
-    opts = dict()
-    for key in request.args:
-        if key == "callback" or key == "_":
-            continue
-        opts[key] = request.args.get(key)
-        if opts[key][0] == "[":
-            opts[key] = [term[1:-1] for term in opts[key][1:-1].split(",")]
-    response = get_counts( opts )
-    response = make_response( "%s(%s)"%(callback,
-        response.data.decode("utf-8")
-        ), response.status_code )
-    #print(response.data)
-    response.mimetype = "application/javascript"
-    return response
+#@app.route('/ngrams/api/', methods=['GET'])
+#def get_counts_get():
+    #callback = str(request.args.get("callback"))
+    #opts = dict()
+    #for key in request.args:
+        #if key == "callback" or key == "_":
+            #continue
+        #opts[key] = request.args.get(key)
+        #if opts[key][0] == "[":
+            #opts[key] = [term[1:-1] for term in opts[key][1:-1].split(",")]
+    #response = get_counts( opts )
+    #response = make_response( "%s(%s)"%(callback,
+        #response.data.decode("utf-8")
+        #), response.status_code )
+    ##print(response.data)
+    #response.mimetype = "application/javascript"
+    #return response
 
-@app.route('/ngrams/api/', methods=['POST'])
-def get_counts_post():
-    if not request.json:
-        return make_response(
-                jsonify({
-                    'error':
-                        'Requests must be JSON formatted'
-                    }), 400
-                )
-    return get_counts( request.json )
+#@app.route('/ngrams/api/', methods=['POST'])
+#def get_counts_post():
+    #if not request.json:
+        #return make_response(
+                #jsonify({
+                    #'error':
+                        #'Requests must be JSON formatted'
+                    #}), 400
+                #)
+    #return get_counts( request.json )
 
-@app.errorhandler(404)
-def not_found(error):
-    return make_response(jsonify({'error': 'Not found'}), 404)
+#@app.errorhandler(404)
+#def not_found(error):
+    #return make_response(jsonify({'error': 'Not found'}), 404)
 
-@app.errorhandler(400)
-def not_found(error):
-    return make_response(jsonify({'error': 'Malformed request.'}), 400)
+#@app.errorhandler(400)
+#def not_found(error):
+    #return make_response(jsonify({'error': 'Malformed request.'}), 400)
 
 if __name__ == '__main__':
     app.run(debug=True)
