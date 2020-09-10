@@ -1,4 +1,4 @@
-import flask_app as api
+import count as api
 from ipywidgets import interactive_output, HBox
 import ipywidgets as widgets
 from matplotlib import pyplot as plt
