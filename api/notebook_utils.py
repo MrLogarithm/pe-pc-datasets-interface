@@ -5,6 +5,136 @@ from matplotlib import pyplot as plt
 from IPython.display import display, HTML
 import re
 
+formatWidget = widgets.RadioButtons( 
+    options=[('none','normal'), ('merge sign variants','merge'), ('split compound signs','split'),('merge variants and split compounds','merge_split')], 
+    value='merge_split',
+#     value='merge variants and split compounds',
+    description ='',
+    disabled=False
+)
+# widgets.Dropdown(
+#     options=[
+#         ('Normal','normal'),
+#         ('Merge sign variants','merge'),
+#         ('Split compound signs','split'),
+#         ('Merge variants and split compounds','merge_split')
+#     ],
+#     value='merge_split',
+#     description='Variants and compounds:',
+#     disabled=False,
+# )
+queryWidget = widgets.Text(
+    value='',
+    placeholder='filter results',
+    description='Search term:',
+    disabled=False,
+)
+orderWidget = widgets.Checkbox(
+    value=True,
+    description='Word order matters?',
+    disabled=False,
+    indent=False
+)
+numericWidget = widgets.Checkbox(
+    value=True,
+    description='Include numeric signs?',
+    disabled=False,
+    indent=False
+)
+linesWidget = widgets.Checkbox(
+    value=False,
+    description='Count lines instead of tokens?',
+    disabled=False,
+    indent=False
+)
+graphWidget = widgets.Dropdown(
+    options=[
+        'graph',
+        'text',
+    ],
+    value='graph',
+    description='',
+    disabled=False,
+)
+plt_sizeWidget = widgets.IntSlider(
+    min=0, 
+    max=50, 
+    step=1, 
+    value=10, 
+    description='Graph size',
+    continuous_update=False
+)
+lengthWidget = widgets.IntSlider(
+    min=0, 
+    max=15, 
+    step=1, 
+    value=1, 
+    description='Length',
+    continuous_update=False
+)
+adminWidget = widgets.Checkbox(
+    value=True,
+    description='administrative',
+    disabled=False,
+    indent=False
+)
+lexWidget = widgets.Checkbox(
+    value=True,
+    description='lexical',
+    disabled=False,
+    indent=False
+)
+miscWidget = widgets.Checkbox(
+    value=True,
+    description='other (school, legal, uncertain)',
+    disabled=False,
+    indent=False
+)
+urukiiiWidget = widgets.Checkbox(
+    value=True,
+    description='Uruk III',
+    disabled=False,
+    indent=False
+)
+urukivWidget = widgets.Checkbox(
+    value=True,
+    description='Uruk IV',
+    disabled=False,
+    indent=False
+)
+urukvWidget = widgets.Checkbox(
+    value=False,
+    description='Uruk V',
+    disabled=False,
+    indent=False
+)
+textOrderWidget = widgets.Dropdown(
+    options=[
+        ('frequency','freq'),
+        ('alphanumeric','alpha'),
+    ],
+    value='freq',
+    description='Order by...',
+    disabled=False,
+)
+locations = sorted(list(set([text['provenience'] for text in api.corpus])))
+locationWidgets = [widgets.Checkbox(
+    value=True,
+    description=loc if loc != '' else '[no provenience recorded]',
+    disabled=False,
+    indent=False
+) for loc in locations]
+# provWidget = widgets.Dropdown(
+#     options=locations,
+# #     value='freq',
+#     description='Order by...',
+#     disabled=False,
+# )
+
+
+
+
+
 def format_label( sign ):
     # Lowercase the sign variant annotations:
     sign = re.sub( "~[^ |+.&X]*", lambda m:m.group(0).lower(), sign )
@@ -12,10 +142,17 @@ def format_label( sign ):
     sign = re.sub( "([^x|])X", "\\1x", sign )
     return sign
 
-def show_result( format_, query, order, numeric, graph, plt_size, length, lines, urukiii, urukiv, urukv, textOrder, admin, **locations ):
+def show_result( format_, query, order, numeric, graph, plt_size, length, lines, urukiii, urukiv, urukv, textOrder, admin, lexical, misc, **locations ):
     query = query.upper()
     periods = []
 
+    if graph != 'graph':
+        plt_sizeWidget.disabled = True
+        plt_sizeWidget.layout.visibility = 'hidden'
+    else:
+        plt_sizeWidget.disabled = False
+        plt_sizeWidget.layout.visibility = 'visible'
+    
     if urukiii:
         periods += ['uruk iii']
     if urukiv:
@@ -23,9 +160,14 @@ def show_result( format_, query, order, numeric, graph, plt_size, length, lines,
     if urukv:
         periods += ['uruk v']
 
-    genre = None
+    genre = []
     if admin:
-        genre = 'admin'
+        genre += ['administrative']
+    if lexical:
+        genre += ['lexical']
+    if misc:
+        genre += ['school', 'uncertain', 'legal', 'literary', 'votive']
+    
         
     provenience = []
     for location, include in locations.items():
@@ -63,112 +205,9 @@ def show_result( format_, query, order, numeric, graph, plt_size, length, lines,
                 print("\t\"%s\": %d,"%(sign,count))
         print("}")
 
-formatWidget = widgets.Dropdown(
-    options=[
-        ('Normal','normal'),
-        ('Merge sign variants','merge'),
-        ('Split compound signs','split'),
-        ('Merge variants and split compounds','merge_split')
-    ],
-    value='normal',
-    description='Data format:',
-    disabled=False,
-)
-queryWidget = widgets.Text(
-    value='',
-    placeholder='filter results',
-    description='Search term:',
-    disabled=False,
-)
-orderWidget = widgets.Checkbox(
-    value=True,
-    description='Word order matters?',
-    disabled=False,
-    indent=False
-)
-numericWidget = widgets.Checkbox(
-    value=True,
-    description='Include numeric signs?',
-    disabled=False,
-    indent=False
-)
-linesWidget = widgets.Checkbox(
-    value=False,
-    description='Count lines instead of tokens?',
-    disabled=False,
-    indent=False
-)
-graphWidget = widgets.Dropdown(
-    options=[
-        'graph',
-        'text',
-    ],
-    value='text',
-    description='',
-    disabled=False,
-)
-plt_sizeWidget = widgets.IntSlider(
-    min=0, 
-    max=50, 
-    step=1, 
-    value=10, 
-    description='Graph size',
-    continuous_update=False
-)
-lengthWidget = widgets.IntSlider(
-    min=0, 
-    max=15, 
-    step=1, 
-    value=1, 
-    description='Length',
-    continuous_update=False
-)
-adminWidget = widgets.Checkbox(
-    value=True,
-    description='Limit to administrative texts?',
-    disabled=False,
-    indent=False
-)
-urukiiiWidget = widgets.Checkbox(
-    value=True,
-    description='Uruk III',
-    disabled=False,
-    indent=False
-)
-urukivWidget = widgets.Checkbox(
-    value=True,
-    description='Uruk IV',
-    disabled=False,
-    indent=False
-)
-urukvWidget = widgets.Checkbox(
-    value=True,
-    description='Uruk V',
-    disabled=False,
-    indent=False
-)
-textOrderWidget = widgets.Dropdown(
-    options=[
-        ('frequency','freq'),
-        ('alphanumeric','alpha'),
-    ],
-    value='freq',
-    description='Order by...',
-    disabled=False,
-)
-locations = sorted(list(set([text['provenience'] for text in api.corpus])))
-locationWidgets = [widgets.Checkbox(
-    value=True,
-    description=loc if loc != '' else '[no provenience recorded]',
-    disabled=False,
-    indent=False
-) for loc in locations]
-# provWidget = widgets.Dropdown(
-#     options=locations,
-# #     value='freq',
-#     description='Order by...',
-#     disabled=False,
-# )
+
+
+
 
 
 i = interactive_output(
@@ -179,6 +218,8 @@ i = interactive_output(
         'numeric': numericWidget, 
         'graph': graphWidget, 
         'admin': adminWidget,
+        'lexical': lexWidget,
+        'misc': miscWidget,
         'plt_size': plt_sizeWidget,
         'length': lengthWidget,
         'lines': linesWidget,
@@ -190,19 +231,23 @@ i = interactive_output(
 
 def run():
     rows = [ 
-        [queryWidget,formatWidget],
+        [queryWidget],
+        [widgets.Label(value="Preprocessing:"),formatWidget],
+        [],
         [lengthWidget],
         [linesWidget], 
         [orderWidget], 
         [numericWidget],
-        [adminWidget],
+        [],
+        [widgets.Label(value="Included genres:")],
+        [adminWidget, lexWidget, miscWidget],
         [],
         [widgets.Label(value="Included periods:")],
         [urukiiiWidget,urukivWidget,urukvWidget], 
         [],
         [widgets.Label(value="Included locations:")],
     ] + [
-        locationWidgets[i:i+3] for i in range(0,len(locationWidgets),3)
+        locationWidgets[i:i+2] for i in range(0,len(locationWidgets),2)
     ] + [
         [],
         [widgets.Label(value="Output format:"),graphWidget], 
