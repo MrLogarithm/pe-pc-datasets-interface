@@ -176,10 +176,9 @@ def get_counts( format_, query, order, numeric, lines, periods, genre, provenien
         if not any(p == text['provenience'] for p in provenience):
             continue
             
-        if genre is not None:
-            if genre not in text['genre']:
-                continue
-
+        if not any(g in text['genre'] for g in genre):
+            continue
+            
         for line in text["transliteration"][format_]:
             line_counts = defaultdict(int)
             if order:
@@ -214,4 +213,4 @@ def get_counts( format_, query, order, numeric, lines, periods, genre, provenien
                    if all(
                        any(word in k_ for k_ in k.split(" ")) 
                        for word in query.split(" ")) }
-    return counts
+    return defaultdict(int,counts)
