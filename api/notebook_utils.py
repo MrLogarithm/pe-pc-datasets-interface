@@ -193,6 +193,10 @@ def show_result( format_, query, order, numeric, graph, plt_size, length, lines,
         for x_,y_,value in zip(x,y,y):
             plt.text( y_ * 1.01, x_-0.15, value )
         plt.margins(0.1, 0.015)
+        
+        from IPython.display import clear_output
+        clear_output(wait=True)
+        plt.show()
     else:
         print("{")
         if textOrder == 'alpha':
@@ -204,6 +208,8 @@ def show_result( format_, query, order, numeric, graph, plt_size, length, lines,
             for count, sign in data:
                 print("\t\"%s\": %d,"%(sign,count))
         print("}")
+
+
 
 
 
